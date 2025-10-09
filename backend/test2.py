@@ -28,7 +28,7 @@ from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
 # 初始化 Ollama 连接
 llm = OllamaLLM(
-    model="qwen3:8b",  # Ollama 中的模型名称 (修改为与已安装模型一致)
+    model="qwen3:8b",  # Ollama 中的模型名称
     base_url="http://localhost:11434",  # Ollama 服务地址
     temperature=0.7,  # 控制随机性 (0~1)
 )
