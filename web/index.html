@@ -62,6 +62,11 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .ai-response {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -148,6 +153,21 @@
             </div>
         </section>
 
+        <!-- AI回答区域 -->
+        <section id="aiResponseContainer" class="mt-8 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="fas fa-robot text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">AI分析结果</h3>
+                </div>
+                <div id="aiResponse" class="ai-response text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    <!-- AI回答将在这里显示 -->
+                </div>
+            </div>
+        </section>
+
         <!-- 加载指示器 -->
         <div id="loadingIndicator" class="hidden mt-12 text-center">
             <div class="inline-block loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
@@ -224,55 +244,11 @@
         const modalText = document.getElementById('modalText');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const sampleCard = document.getElementById('sampleCard');
+        const aiResponseContainer = document.getElementById('aiResponseContainer');
+        const aiResponse = document.getElementById('aiResponse');
 
-        // 模拟论文数据 (Mock Data)
-        const MOCK_PAPERS = [
-            {
-                id: 101,
-                title: "人工智能伦理在医疗领域的应用研究",
-                authors: "李明, 王芳",
-                year: 2023,
-                abstract: "本文探讨了人工智能在医疗诊断和治疗中的伦理挑战，并提出了相应的监管框架建议。关键词：医疗AI，伦理，隐私保护。",
-                citations: 42,
-                journal: "医学人工智能期刊"
-            },
-            {
-                id: 102,
-                title: "基于深度学习的中文命名实体识别新模型",
-                authors: "张伟",
-                year: 2024,
-                abstract: "提出了一种结合注意力机制和BERT模型的新方法，显著提高了中文NER任务的准确率。关键词：深度学习，NER，BERT，NLP。",
-                citations: 28,
-                journal: "计算语言学"
-            },
-            {
-                id: 103,
-                title: "量子计算在金融风险管理中的潜力分析",
-                authors: "陈静, 赵雷",
-                year: 2022,
-                abstract: "评估了量子算法在期权定价和投资组合优化方面的性能优势。关键词：量子计算，金融工程，风险管理。",
-                citations: 56,
-                journal: "量子计算评论"
-            },
-            {
-                id: 104,
-                title: "后疫情时代远程办公效率的影响因素实证研究",
-                authors: "刘涛, 孙悦",
-                year: 2023,
-                abstract: "通过问卷调查和回归分析，研究了工作环境、管理模式对远程办公效率的复杂影响。关键词：远程办公，工作效率，实证研究。",
-                citations: 37,
-                journal: "管理科学"
-            },
-            {
-                id: 105,
-                title: "新能源汽车电池寿命预测算法的改进",
-                authors: "周杰伦",
-                year: 2024,
-                abstract: "改进了基于循环神经网络（RNN）的电池健康状态（SOH）预测，提高了预测的鲁棒性和精度。关键词：新能源，电池，RNN，SOH。",
-                citations: 19,
-                journal: "可持续能源期刊"
-            },
-        ];
+        // API配置 - 部署时需要更新为实际的API端点
+        const API_BASE_URL = 'https://your-flask-api.herokuapp.com'; // 替换为实际的后端API地址
 
         // 设置搜索查询
         function setSearchQuery(query) {
@@ -281,16 +257,17 @@
         }
 
         /**
-         * 处理搜索逻辑，模拟 API 调用
+         * 处理搜索逻辑，调用后端AI API
          */
         async function searchPapers() {
-            const query = searchInput.value.trim().toLowerCase();
+            const query = searchInput.value.trim();
             searchButton.disabled = true;
             searchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>搜索中...';
 
             // 隐藏示例卡片
             sampleCard.style.display = 'none';
             resultsContainer.innerHTML = '';
+            aiResponseContainer.classList.add('hidden');
 
             // 显示加载指示器
             loadingIndicator.classList.remove('hidden');
@@ -306,21 +283,63 @@
 
             statusMessage.innerHTML = `正在搜索 "<span class="font-semibold text-indigo-600">${query}</span>"...`;
 
-            // 模拟网络延迟
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            try {
+                // 调用后端AI API
+                const response = await fetch(`${API_BASE_URL}/api/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: query })
+                });
 
-            // 模拟根据查询过滤结果
-            const filteredResults = MOCK_PAPERS.filter(paper =>
-                paper.title.toLowerCase().includes(query) ||
-                paper.authors.toLowerCase().includes(query) ||
-                paper.abstract.toLowerCase().includes(query)
-            );
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
 
-            searchButton.disabled = false;
-            searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
-            loadingIndicator.classList.add('hidden');
+                const data = await response.json();
 
-            renderResults(filteredResults, query);
+                searchButton.disabled = false;
+                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
+                loadingIndicator.classList.add('hidden');
+
+                // 显示AI回答
+                aiResponse.innerHTML = data.response || "未找到相关结果";
+                aiResponseContainer.classList.remove('hidden');
+
+                // 如果有论文结果，也可以在这里显示
+                if (data.papers && data.papers.length > 0) {
+                    renderResults(data.papers, query);
+                }
+
+            } catch (error) {
+                console.error('搜索出错:', error);
+                statusMessage.innerHTML = `<span class="text-red-500">搜索失败: ${error.message}</span>`;
+                searchButton.disabled = false;
+                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
+                loadingIndicator.classList.add('hidden');
+
+                // 模拟AI响应作为后备方案
+                simulateAIResponse(query);
+            }
+        }
+
+        /**
+         * 模拟AI响应（当后端不可用时使用）
+         */
+        function simulateAIResponse(query) {
+            // 这里是模拟数据，实际使用时应删除
+            const mockResponses = {
+                "机器学习": "机器学习是人工智能的一个子领域，专注于开发能够从数据中学习并做出预测的算法。近年来，深度学习技术极大地推动了该领域的发展，特别是在计算机视觉和自然语言处理方面。",
+                "神经网络": "神经网络是受人脑结构启发的计算模型，由相互连接的人工神经元组成。它们能够学习数据中的复杂模式，是深度学习的基础。Transformer架构是近年来最重要的进展之一。",
+                "自然语言处理": "自然语言处理(NLP)是人工智能的一个分支，专注于使计算机能够理解、解释和生成人类语言。BERT、GPT等大型语言模型已经彻底改变了这一领域。",
+                "计算机视觉": "计算机视觉使计算机能够从图像和视频中提取信息。卷积神经网络(CNN)是该领域的基础，而最近的Vision Transformer模型进一步提升了性能。"
+            };
+
+            const defaultResponse = `关于"${query}"，这是一个重要的研究领域。AI系统已经检索了相关学术论文，但由于演示限制，无法提供实时数据。在实际部署中，这里将显示基于最新学术论文的详细分析。`;
+
+            aiResponse.innerHTML = mockResponses[query] || defaultResponse;
+            aiResponseContainer.classList.remove('hidden');
         }
 
         /**
@@ -353,23 +372,18 @@
                         <span class="text-sm font-medium text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">${paper.year}</span>
                     </div>
                     <p class="text-sm text-gray-500 mb-2">
-                        作者: <span class="font-medium text-gray-700">${paper.authors}</span>
-                    </p>
-                    <p class="text-sm text-gray-500 mb-2">
-                        期刊: <span class="font-medium text-gray-700">${paper.journal}</span> •
-                        被引用: <span class="font-medium text-gray-700">${paper.citations}次</span>
+                        作者: <span class="font-medium text-gray-700">${paper.authors.join(', ')}</span>
                     </p>
                     <p class="text-gray-600 text-sm italic mb-4 line-clamp-3">
-                        ${highlightText(paper.abstract)}
+                        ${highlightText(paper.summary)}
                     </p>
                     <div class="flex space-x-3">
-                        <button
-                            onclick="downloadPaper(${paper.id}, '${paper.title.replace(/'/g, "\\'")}')"
+                        <a href="${paper.pdf_url}" target="_blank"
                             class="px-5 py-2 bg-green-500 text-white font-medium rounded-lg shadow-md hover:bg-green-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
                         >
                             <i class="fas fa-download mr-2"></i>
                             下载 PDF
-                        </button>
+                        </a>
                         <button
                             class="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
                         >
@@ -380,29 +394,6 @@
                 `;
                 resultsContainer.appendChild(resultCard);
             });
-        }
-
-        /**
-         * 模拟下载操作并显示模态框
-         * @param {number} id - 论文ID
-         * @param {string} title - 论文标题
-         */
-        function downloadPaper(id, title) {
-            console.log(`模拟下载论文 ID: ${id}, 标题: ${title}`);
-
-            // 模拟触发下载操作（在实际应用中，这里会是 window.open('download_link') 或 AJAX请求）
-
-            modalText.textContent = `系统已成功处理对论文《${title}》的下载请求。在真实环境中，下载将在数秒后开始。`;
-            downloadModal.classList.remove('hidden');
-            downloadModal.classList.add('flex');
-        }
-
-        /**
-         * 关闭模态框
-         */
-        function closeModal() {
-            downloadModal.classList.add('hidden');
-            downloadModal.classList.remove('flex');
         }
 
         /**
