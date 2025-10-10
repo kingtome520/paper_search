@@ -285,16 +285,27 @@
 
             try {
                 // 调用后端AI API
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+                
                 const response = await fetch(`${API_BASE_URL}/api/search`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ question: query })
+                    body: JSON.stringify({ question: query }),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+
                 if (!response.ok) {
-                    throw new Error('网络响应不正常');
+                    const errorText = await response.text();
+                    console.error('Error response body:', errorText);
+                    throw new Error(`网络响应不正常: ${response.status} ${response.statusText}\n${errorText}`);
                 }
 
                 const data = await response.json();
@@ -314,7 +325,19 @@
 
             } catch (error) {
                 console.error('搜索出错:', error);
-                statusMessage.innerHTML = `<span class="text-red-500">搜索失败: ${error.message}</span>`;
+                clearTimeout(timeoutId);
+                
+                // 更详细的错误处理
+                let errorMessage = '搜索失败: ';
+                if (error.name === 'AbortError') {
+                    errorMessage += '请求超时，请检查网络连接或稍后重试';
+                } else if (error.message.includes('Failed to fetch')) {
+                    errorMessage += '无法连接到服务器，请确保后端服务正在运行且URL配置正确';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                statusMessage.innerHTML = `<span class="text-red-500">${errorMessage}</span>`;
                 searchButton.disabled = false;
                 searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
                 loadingIndicator.classList.add('hidden');
