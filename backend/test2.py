@@ -5,33 +5,37 @@ import json
 import os
 import traceback
 import logging
-import asyncio
-import aiohttp
-from concurrent.futures import ThreadPoolExecutor
-
 
 # 设置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, static_folder='web', static_url_path='/')
-CORS(app)  # 允许跨域请求
+app = Flask(__name__)
+# 配置CORS以允许Netlify前端的请求
+CORS(app)
 
-from langchain_ollama import OllamaLLM
-from langchain_community.document_loaders import ArxivLoader
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 
-# 初始化 Ollama 连接
-llm = OllamaLLM(
-    model="qwen3:8b",  # Ollama 中的模型名称
-    base_url="http://localhost:11434",  # Ollama 服务地址
-    temperature=0.7,  # 控制随机性 (0~1)
-)
+# 删除或注释掉本地Ollama相关的导入和初始化
+# from langchain_ollama import OllamaLLM
+# ... 其他LangChain相关导入 ...
+
+# 初始化一个简单的LLM（示例用），实际使用时你需要替换成一个可通过API访问的模型（如OpenAI, Together AI, DeepSeek等）
+# 因为Ollama通常在本地运行，无法在Railway上使用。
+class MockLLM:
+    def invoke(self, text):
+        # 这是一个模拟响应。在实际部署中，你应该调用一个真实的LLM API。
+        if "optimize" in text:
+            return "优化后的查询: machine learning"
+        return f"这是一段关于'{text}'的AI生成回答。此为演示内容。在实际部署中，此处应连接真实的LLM API（如OpenAI、Claude、DeepSeek等）。"
+
+    def __or__(self, other):
+        # 简单模拟 LangChain 的链式操作
+        return self
+
+
+# 使用模拟LLM（生产环境中需替换）
+llm = MockLLM()
+StrOutputParser = lambda: lambda x: x
 
 
 # 创建 arXiv 检索器
@@ -41,7 +45,7 @@ class ArxivRetriever:
 
     def search(self, query: str):
         """检索 arXiv 论文并返回文档"""
-        logger.debug(f"Searching arxiv for query: {query}")
+        logger.info(f"Searching arxiv for query: {query}")
         try:
             client = arxiv.Client()
             search = arxiv.Search(
@@ -63,20 +67,19 @@ class ArxivRetriever:
                 }
                 results.append(doc)
 
-            logger.debug(f"Found {len(results)} results")
+            logger.info(f"Found {len(results)} results")
             return results
         except Exception as e:
             logger.error(f"Error searching arxiv: {str(e)}")
             logger.error(traceback.format_exc())
-            raise
+            return []  # 出错时返回空列表
 
 
-# 文档处理流水线
+# ... [保留 process_docs, template, prompt 等函数] ...
 def process_docs(retrieved_docs):
     """处理检索到的文档并生成带引用的上下文"""
     processed = []
     for i, doc in enumerate(retrieved_docs):
-        # 创建带引用的文本块
         content = f"""
         [引用 {i + 1}]
         标题: {doc['title']}
@@ -91,26 +94,6 @@ def process_docs(retrieved_docs):
     return "\n\n".join(processed)
 
 
-# 优化查询的提示词模板
-query_optimization_template = """
-你是一个专业的学术搜索助手。你的任务是优化用户的查询，使其更适合在arXiv学术数据库中搜索。
-请将用户的查询转换为更精确、更适合学术搜索的关键词组合。
-
-用户查询: {question}
-
-请按照以下格式回复:
-优化后的查询: [你的优化查询]
-
-优化原则:
-1. 使用英文关键词（如果原查询是中文，请翻译成英文）
-2. 添加相关的学术术语
-3. 保持简洁但具体
-4. 避免过于宽泛的词汇
-"""
-
-query_optimization_prompt = ChatPromptTemplate.from_template(query_optimization_template)
-
-# 提示工程模板
 template = """
 你是一个专业科学助手，请基于提供的上下文信息回答问题。
 回答必须包含引用标记（如 [1], [2]）并附上参考文献列表。
@@ -128,48 +111,27 @@ template = """
 [1] 标题 - 作者 (年份) [链接]
 [2] ...
 """
-prompt = ChatPromptTemplate.from_template(template)
-
-# 构建查询优化链
-query_optimizer = query_optimization_prompt | llm | StrOutputParser()
+prompt = lambda x: x
 
 # 构建 RAG 流水线
 retriever = ArxivRetriever(top_k=3)
 
-def optimize_and_search(inputs):
-    """优化查询并搜索"""
-    question = inputs["question"]
-    
-    # 先优化查询
-    try:
-        optimized_query = query_optimizer.invoke({"question": question})
-        # 提取优化后的查询
-        if "优化后的查询:" in optimized_query:
-            optimized_query = optimized_query.split("优化后的查询:")[1].strip()
-        logger.debug(f"Original query: {question}")
-        logger.debug(f"Optimized query: {optimized_query}")
-    except Exception as e:
-        logger.error(f"Error optimizing query: {str(e)}")
-        # 如果优化失败，使用原始查询
-        optimized_query = question
-    
-    # 使用优化后的查询进行搜索
-    papers = retriever.search(optimized_query)
+
+def rag_function(input_dict):
+    """优化的RAG流程"""
+    question = input_dict["question"]
+    papers = retriever.search(question)
     context = process_docs(papers)
-    return {"context": context, "question": question}
 
-rag_chain = (
-    RunnableLambda(optimize_and_search)
-    | prompt
-    | llm
-    | StrOutputParser()
-)
+    # 模拟链式调用
+    formatted_prompt = f"上下文:\n{context}\n\n问题: {question}\n\n请按以下格式回答:\n[答案正文]\n[引用标记] 对应上下文中的引用编号\n\n参考文献:\n[1] 标题 - 作者 (年份) [链接]\n[2] ..."
+    response = llm.invoke(formatted_prompt)
+    return response
 
 
-# 提供前端页面
 @app.route('/')
-def index():
-    return app.send_static_file('index.html')
+def home():
+    return jsonify({"message": "ScholarSearch API is running!", "status": "OK"})
 
 
 @app.route('/api/search', methods=['POST'])
@@ -181,12 +143,12 @@ def search_papers():
         if not question:
             return jsonify({'error': '问题不能为空'}), 400
 
-        logger.debug(f"Received search request with question: {question}")
+        logger.info(f"Received search request: {question}")
 
         # 使用RAG系统获取答案
-        response = rag_chain.invoke({"question": question})
+        response = rag_function({"question": question})
 
-        # 同时获取论文信息用于前端显示（使用原始查询）
+        # 同时获取论文信息用于前端显示
         papers = retriever.search(question)
 
         return jsonify({
@@ -197,8 +159,9 @@ def search_papers():
     except Exception as e:
         logger.error(f"Error in search_papers: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({'error': f'搜索失败: {str(e)}'}), 500
+        return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
