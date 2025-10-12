@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能学术论文搜索引擎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .search-shadow {
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15), 0 5px 10px -5px rgba(79, 70, 229, 0.08);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-5px);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(120deg, #4f46e5, #7c3aed);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .loader {
+            border-top-color: #4f46e5;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ai-response {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-extrabold text-indigo-700 tracking-tight">
+                    <i class="fas fa-book-open mr-2"></i>ScholarSearch
+                </h1>
+                <span class="ml-3 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">AI增强版</span>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-gray-600">
+                <a href="#" class="hover:text-indigo-600 transition duration-150">首页</a>
+                <a href="#" class="hover:text-indigo-600 transition duration-150">高级搜索</a>
+                <a href="#" class="hover:text-indigo-600 transition duration-150">我的文库</a>
+                <a href="#" class="hover:text-indigo-600 transition duration-150">帮助</a>
+            </nav>
+            <button class="md:hidden text-gray-500">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 w-full">
+        <!-- 搜索区域 -->
+        <section class="mb-10 text-center">
+            <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">探索学术前沿</h2>
+            <p class="text-lg text-gray-500 mb-6">输入关键词，AI驱动搜索相关研究论文</p>
+
+            <div class="flex flex-col sm:flex-row max-w-3xl mx-auto search-shadow rounded-full bg-white p-1.5">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="例如：人工智能伦理, 量子计算应用, transformer架构..."
+                    class="flex-grow py-4 px-6 text-lg rounded-full focus:outline-none focus:ring-4 focus:ring-indigo-200 border border-transparent transition duration-300"
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button
+                    id="searchButton"
+                    onclick="searchPapers()"
+                    class="mt-3 sm:mt-0 sm:ml-2 w-full sm:w-auto px-8 py-4 gradient-bg text-white font-semibold rounded-full hover:opacity-90 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-500/50 flex items-center justify-center"
+                >
+                    <i class="fas fa-search mr-2"></i>
+                    <span>搜索论文</span>
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+                <span class="text-xs text-gray-500">热门搜索：</span>
+                <button class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100" onclick="setSearchQuery('机器学习')">机器学习</button>
+                <button class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100" onclick="setSearchQuery('神经网络')">神经网络</button>
+                <button class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100" onclick="setSearchQuery('自然语言处理')">自然语言处理</button>
+                <button class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100" onclick="setSearchQuery('计算机视觉')">计算机视觉</button>
+            </div>
+        </section>
+
+        <!-- 状态/通知区域 -->
+        <div id="statusMessage" class="max-w-5xl mx-auto text-center py-3 text-lg text-gray-500">
+            <div class="inline-flex items-center bg-blue-50 px-4 py-2 rounded-full">
+                <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                <span>可尝试搜索关键词：<span class="font-semibold text-blue-600">人工智能</span>, <span class="font-semibold text-blue-600">量子计算</span>, 或 <span class="font-semibold text-blue-600">远程办公</span></span>
+            </div>
+        </div>
+
+        <!-- 结果展示区域 -->
+        <section id="resultsContainer" class="grid gap-6 mt-8">
+            <!-- 示例卡片（静态展示，搜索后会隐藏） -->
+            <div id="sampleCard" class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500 card-hover">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2 sm:mb-0">欢迎使用智能学术搜索</h3>
+                    <span class="text-sm font-medium text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">2024</span>
+                </div>
+                <p class="text-sm text-gray-500 mb-2">
+                    作者: <span class="font-medium text-gray-700">AI研究团队</span>
+                </p>
+                <p class="text-gray-600 text-sm italic mb-4">
+                    这是一个演示版本，展示了学术论文搜索的界面。在实际部署中，这里将显示从arXiv等学术数据库获取的真实论文数据。
+                </p>
+                <button class="px-5 py-2 bg-gray-500 text-white font-medium rounded-lg shadow-md hover:bg-gray-600 transition duration-150">
+                    <i class="fas fa-download mr-2"></i>
+                    示例按钮
+                </button>
+            </div>
+        </section>
+
+        <!-- AI回答区域 -->
+        <section id="aiResponseContainer" class="mt-8 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="fas fa-robot text-green-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900">AI分析结果</h3>
+                </div>
+                <div id="aiResponse" class="ai-response text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    <!-- AI回答将在这里显示 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 加载指示器 -->
+        <div id="loadingIndicator" class="hidden mt-12 text-center">
+            <div class="inline-block loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+            <p class="text-gray-500 mt-4">正在使用AI分析并搜索相关论文...</p>
+        </div>
+
+        <!-- 模拟下载成功的提示框 -->
+        <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100 opacity-100">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                        <i class="fas fa-check text-green-600 text-xl"></i>
+                    </div>
+                    <h3 class="mt-2 text-xl font-medium text-gray-900">下载请求已发送</h3>
+                    <p class="mt-1 text-sm text-gray-500" id="modalText"></p>
+                    <div class="mt-4">
+                        <button onclick="closeModal()" class="inline-flex justify-center rounded-full border border-transparent bg-indigo-600 px-6 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            确定
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 功能说明区域 -->
+    <section class="bg-white py-12 mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-center text-gray-900 mb-10">为什么选择我们的学术搜索引擎？</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                        <i class="fas fa-brain text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900">AI驱动搜索</h3>
+                    <p class="mt-2 text-gray-500">利用大型语言模型理解查询意图，提供更相关的搜索结果</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                        <i class="fas fa-bolt text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900">快速高效</h3>
+                    <p class="mt-2 text-gray-500">从多个学术数据库即时检索，节省您的研究时间</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-indigo-100 text-indigo-600 mb-4">
+                        <i class="fas fa-filter text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900">智能筛选</h3>
+                    <p class="mt-2 text-gray-500">按领域、年份、作者等多种条件筛选最相关的论文</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部信息 -->
+    <footer class="bg-gray-800 text-white mt-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm">
+            <p>&copy; 2024 ScholarSearch 智能学术搜索引擎. 学术内容仅供参考。</p>
+            <p class="mt-2 text-gray-400">本网站使用模拟数据进行演示，实际部署后可连接真实学术数据库</p>
+        </div>
+    </footer>
+
+    <script>
+        // 全局变量和DOM元素
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const searchButton = document.getElementById('searchButton');
+        const downloadModal = document.getElementById('downloadModal');
+        const modalText = document.getElementById('modalText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const sampleCard = document.getElementById('sampleCard');
+        const aiResponseContainer = document.getElementById('aiResponseContainer');
+        const aiResponse = document.getElementById('aiResponse');
+
+        // API配置 - 部署时需要更新为实际的API端点
+        const API_BASE_URL = 'http://127.0.0.1:5000'; // 替换为实际的后端API地址
+
+        // 设置搜索查询
+        function setSearchQuery(query) {
+            searchInput.value = query;
+            searchInput.focus();
+        }
+
+        /**
+         * 处理搜索逻辑，调用后端AI API
+         */
+        async function searchPapers() {
+            const query = searchInput.value.trim();
+            searchButton.disabled = true;
+            searchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>搜索中...';
+
+            // 隐藏示例卡片
+            sampleCard.style.display = 'none';
+            resultsContainer.innerHTML = '';
+            aiResponseContainer.classList.add('hidden');
+
+            // 显示加载指示器
+            loadingIndicator.classList.remove('hidden');
+
+            // 确保查询不为空
+            if (!query) {
+                statusMessage.innerHTML = '<span class="text-red-500">请输入搜索关键词！</span>';
+                searchButton.disabled = false;
+                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            statusMessage.innerHTML = `正在搜索 "<span class="font-semibold text-indigo-600">${query}</span>"...`;
+
+            try {
+                // 调用后端AI API
+                const response = await fetch(`${API_BASE_URL}/api/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: query })
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+
+                const data = await response.json();
+
+                searchButton.disabled = false;
+                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
+                loadingIndicator.classList.add('hidden');
+
+                // 显示AI回答
+                aiResponse.innerHTML = data.response || "未找到相关结果";
+                aiResponseContainer.classList.remove('hidden');
+
+                // 如果有论文结果，也可以在这里显示
+                if (data.papers && data.papers.length > 0) {
+                    renderResults(data.papers, query);
+                }
+
+            } catch (error) {
+                console.error('搜索出错:', error);
+                statusMessage.innerHTML = `<span class="text-red-500">搜索失败: ${error.message}</span>`;
+                searchButton.disabled = false;
+                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
+                loadingIndicator.classList.add('hidden');
+
+                // 模拟AI响应作为后备方案
+                simulateAIResponse(query);
+            }
+        }
+
+        /**
+         * 模拟AI响应（当后端不可用时使用）
+         */
+        function simulateAIResponse(query) {
+            // 这里是模拟数据，实际使用时应删除
+            const mockResponses = {
+                "机器学习": "机器学习是人工智能的一个子领域，专注于开发能够从数据中学习并做出预测的算法。近年来，深度学习技术极大地推动了该领域的发展，特别是在计算机视觉和自然语言处理方面。",
+                "神经网络": "神经网络是受人脑结构启发的计算模型，由相互连接的人工神经元组成。它们能够学习数据中的复杂模式，是深度学习的基础。Transformer架构是近年来最重要的进展之一。",
+                "自然语言处理": "自然语言处理(NLP)是人工智能的一个分支，专注于使计算机能够理解、解释和生成人类语言。BERT、GPT等大型语言模型已经彻底改变了这一领域。",
+                "计算机视觉": "计算机视觉使计算机能够从图像和视频中提取信息。卷积神经网络(CNN)是该领域的基础，而最近的Vision Transformer模型进一步提升了性能。"
+            };
+
+            const defaultResponse = `关于"${query}"，这是一个重要的研究领域。AI系统已经检索了相关学术论文，但由于演示限制，无法提供实时数据。在实际部署中，这里将显示基于最新学术论文的详细分析。`;
+
+            aiResponse.innerHTML = mockResponses[query] || defaultResponse;
+            aiResponseContainer.classList.remove('hidden');
+        }
+
+        /**
+         * 渲染搜索结果到页面
+         * @param {Array} results - 搜索到的论文数组
+         * @param {string} query - 原始搜索关键词
+         */
+        function renderResults(results, query) {
+            if (results.length === 0) {
+                statusMessage.innerHTML = `抱歉，未找到与 "<span class="font-semibold text-gray-800">${query}</span>" 相关的论文。`;
+                return;
+            }
+
+            statusMessage.innerHTML = `找到 <span class="font-semibold text-indigo-600">${results.length}</span> 篇相关论文：`;
+
+            results.forEach((paper, index) => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-500 card-hover fade-in';
+                resultCard.style.animationDelay = `${index * 0.1}s`;
+
+                // 高亮关键词
+                const highlightText = (text) => {
+                    const queryRegex = new RegExp(`(${query})`, 'gi');
+                    return text.replace(queryRegex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
+                };
+
+                resultCard.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2 sm:mb-0">${highlightText(paper.title)}</h3>
+                        <span class="text-sm font-medium text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">${paper.year}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2">
+                        作者: <span class="font-medium text-gray-700">${paper.authors.join(', ')}</span>
+                    </p>
+                    <p class="text-gray-600 text-sm italic mb-4 line-clamp-3">
+                        ${highlightText(paper.summary)}
+                    </p>
+                    <div class="flex space-x-3">
+                        <a href="${paper.pdf_url}" target="_blank"
+                            class="px-5 py-2 bg-green-500 text-white font-medium rounded-lg shadow-md hover:bg-green-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
+                        >
+                            <i class="fas fa-download mr-2"></i>
+                            下载 PDF
+                        </a>
+                        <button
+                            class="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
+                        >
+                            <i class="fas fa-quote-right mr-2"></i>
+                            引用
+                        </button>
+                    </div>
+                `;
+                resultsContainer.appendChild(resultCard);
+            });
+        }
+
+        /**
+         * 处理回车键触发搜索
+         * @param {Event} event - 键盘事件
+         */
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchPapers();
+            }
+        }
+
+        // 初始加载时提示用户可以使用的搜索词
+        document.addEventListener('DOMContentLoaded', () => {
+            // 添加一些动画效果
+            setTimeout(() => {
+                document.querySelectorAll('.card-hover').forEach(card => {
+                    card.classList.add('fade-in');
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html>

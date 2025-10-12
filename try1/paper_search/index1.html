@@ -77,7 +77,7 @@
                 <h1 class="text-2xl font-extrabold text-indigo-700 tracking-tight">
                     <i class="fas fa-book-open mr-2"></i>ScholarSearch
                 </h1>
-                <span class="ml-3 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">AI增强版</span>
+                <span class="ml-3 px-2 py-1 text-xs font-semibold bg-indigo-100 text-indigo-800 rounded-full">演示版</span>
             </div>
             <nav class="hidden md:flex space-x-6 text-gray-600">
                 <a href="#" class="hover:text-indigo-600 transition duration-150">首页</a>
@@ -95,7 +95,7 @@
         <!-- 搜索区域 -->
         <section class="mb-10 text-center">
             <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">探索学术前沿</h2>
-            <p class="text-lg text-gray-500 mb-6">输入关键词，AI驱动搜索相关研究论文</p>
+            <p class="text-lg text-gray-500 mb-6">输入关键词，体验AI驱动搜索相关研究论文</p>
 
             <div class="flex flex-col sm:flex-row max-w-3xl mx-auto search-shadow rounded-full bg-white p-1.5">
                 <input
@@ -128,7 +128,7 @@
         <div id="statusMessage" class="max-w-5xl mx-auto text-center py-3 text-lg text-gray-500">
             <div class="inline-flex items-center bg-blue-50 px-4 py-2 rounded-full">
                 <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
-                <span>可尝试搜索关键词：<span class="font-semibold text-blue-600">人工智能</span>, <span class="font-semibold text-blue-600">量子计算</span>, 或 <span class="font-semibold text-blue-600">远程办公</span></span>
+                <span>这是一个演示版本，使用模拟数据展示界面功能</span>
             </div>
         </div>
 
@@ -172,24 +172,6 @@
         <div id="loadingIndicator" class="hidden mt-12 text-center">
             <div class="inline-block loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
             <p class="text-gray-500 mt-4">正在使用AI分析并搜索相关论文...</p>
-        </div>
-
-        <!-- 模拟下载成功的提示框 -->
-        <div id="downloadModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
-            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all scale-100 opacity-100">
-                <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                        <i class="fas fa-check text-green-600 text-xl"></i>
-                    </div>
-                    <h3 class="mt-2 text-xl font-medium text-gray-900">下载请求已发送</h3>
-                    <p class="mt-1 text-sm text-gray-500" id="modalText"></p>
-                    <div class="mt-4">
-                        <button onclick="closeModal()" class="inline-flex justify-center rounded-full border border-transparent bg-indigo-600 px-6 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            确定
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 
@@ -240,15 +222,94 @@
         const resultsContainer = document.getElementById('resultsContainer');
         const statusMessage = document.getElementById('statusMessage');
         const searchButton = document.getElementById('searchButton');
-        const downloadModal = document.getElementById('downloadModal');
-        const modalText = document.getElementById('modalText');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const sampleCard = document.getElementById('sampleCard');
         const aiResponseContainer = document.getElementById('aiResponseContainer');
         const aiResponse = document.getElementById('aiResponse');
 
-        // API配置 - 部署时需要更新为实际的API端点
-        const API_BASE_URL = 'https://papersearch-production-d515.up.railway.app'; // 替换为实际的后端API地址
+        // 模拟论文数据
+        const mockPapers = {
+            "机器学习": [
+                {
+                    title: "深度学习在图像识别中的应用研究",
+                    authors: ["张明", "李华", "王刚"],
+                    summary: "本文探讨了深度学习技术在图像识别领域的应用，提出了改进的卷积神经网络架构，在多个数据集上取得了state-of-the-art的结果。",
+                    published: "2023-05-15",
+                    pdf_url: "#",
+                    year: 2023
+                },
+                {
+                    title: "基于机器学习的医疗诊断辅助系统",
+                    authors: ["刘强", "赵雪", "陈晓"],
+                    summary: "研究开发了一种基于机器学习的医疗诊断辅助系统，能够帮助医生更准确地诊断疾病，提高了诊断效率和准确性。",
+                    published: "2023-03-20",
+                    pdf_url: "#",
+                    year: 2023
+                }
+            ],
+            "神经网络": [
+                {
+                    title: "Transformer架构在自然语言处理中的革命性影响",
+                    authors: ["王涛", "杨帆", "郑小龙"],
+                    summary: "本文详细分析了Transformer架构对自然语言处理领域的重大影响，探讨了其核心机制和未来发展方向。",
+                    published: "2023-07-10",
+                    pdf_url: "#",
+                    year: 2023
+                },
+                {
+                    title: "图神经网络及其在社交网络分析中的应用",
+                    authors: ["周杰", "吴明", "黄海"],
+                    summary: "研究提出了改进的图神经网络模型，在多个社交网络数据集上验证了其有效性，为社交网络分析提供了新工具。",
+                    published: "2023-04-05",
+                    pdf_url: "#",
+                    year: 2023
+                }
+            ],
+            "自然语言处理": [
+                {
+                    title: "大型语言模型的发展趋势与挑战",
+                    authors: ["钱江", "孙宇", "林天"],
+                    summary: "本文系统分析了大型语言模型的发展历程，讨论了当前面临的技术挑战和未来可能的研究方向。",
+                    published: "2023-06-18",
+                    pdf_url: "#",
+                    year: 2023
+                },
+                {
+                    title: "多语言自然语言处理中的跨语言迁移学习",
+                    authors: ["马超", "朱峰", "何鑫"],
+                    summary: "研究探索了跨语言迁移学习在多语言自然语言处理中的应用，提出了新的模型架构和训练策略。",
+                    published: "2023-02-12",
+                    pdf_url: "#",
+                    year: 2023
+                }
+            ],
+            "计算机视觉": [
+                {
+                    title: "实时目标检测算法的优化与实现",
+                    authors: ["林雪", "郭强", "罗平"],
+                    summary: "本文提出了一种优化的实时目标检测算法，在保持高精度的同时显著提升了检测速度，适用于实时应用场景。",
+                    published: "2023-08-22",
+                    pdf_url: "#",
+                    year: 2023
+                },
+                {
+                    title: "三维计算机视觉中的深度估计技术",
+                    authors: ["徐阳", "高飞", "邓超"],
+                    summary: "研究探讨了三维计算机视觉中的深度估计问题，提出了基于单目图像的深度估计算法，在多个基准测试中取得优异结果。",
+                    published: "2023-01-30",
+                    pdf_url: "#",
+                    year: 2023
+                }
+            ]
+        };
+
+        // 模拟AI回答
+        const mockResponses = {
+            "机器学习": "机器学习是人工智能的一个子领域，专注于开发能够从数据中学习并做出预测的算法。近年来，深度学习技术极大地推动了该领域的发展，特别是在计算机视觉和自然语言处理方面。\n\n参考文献:\n[1] 深度学习在图像识别中的应用研究 - 张明, 李华, 王刚 (2023)\n[2] 基于机器学习的医疗诊断辅助系统 - 刘强, 赵雪, 陈晓 (2023)",
+            "神经网络": "神经网络是受人脑结构启发的计算模型，由相互连接的人工神经元组成。它们能够学习数据中的复杂模式，是深度学习的基础。Transformer架构是近年来最重要的进展之一。\n\n参考文献:\n[1] Transformer架构在自然语言处理中的革命性影响 - 王涛, 杨帆, 郑小龙 (2023)\n[2] 图神经网络及其在社交网络分析中的应用 - 周杰, 吴明, 黄海 (2023)",
+            "自然语言处理": "自然语言处理(NLP)是人工智能的一个分支，专注于使计算机能够理解、解释和生成人类语言。BERT、GPT等大型语言模型已经彻底改变了这一领域。\n\n参考文献:\n[1] 大型语言模型的发展趋势与挑战 - 钱江, 孙宇, 林天 (2023)\n[2] 多语言自然语言处理中的跨语言迁移学习 - 马超, 朱峰, 何鑫 (2023)",
+            "计算机视觉": "计算机视觉使计算机能够从图像和视频中提取信息。卷积神经网络(CNN)是该领域的基础，而最近的Vision Transformer模型进一步提升了性能。\n\n参考文献:\n[1] 实时目标检测算法的优化与实现 - 林雪, 郭强, 罗平 (2023)\n[2] 三维计算机视觉中的深度估计技术 - 徐阳, 高飞, 邓超 (2023)"
+        };
 
         // 设置搜索查询
         function setSearchQuery(query) {
@@ -257,7 +318,7 @@
         }
 
         /**
-         * 处理搜索逻辑，调用后端AI API
+         * 处理搜索逻辑，使用模拟数据
          */
         async function searchPapers() {
             const query = searchInput.value.trim();
@@ -283,86 +344,22 @@
 
             statusMessage.innerHTML = `正在搜索 "<span class="font-semibold text-indigo-600">${query}</span>"...`;
 
-            try {
-                // 调用后端AI API
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
-                
-                const response = await fetch(`${API_BASE_URL}/api/search`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ question: query }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', [...response.headers.entries()]);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response body:', errorText);
-                    throw new Error(`网络响应不正常: ${response.status} ${response.statusText}\n${errorText}`);
-                }
-
-                const data = await response.json();
-
+            // 使用setTimeout模拟网络延迟
+            setTimeout(() => {
                 searchButton.disabled = false;
                 searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
                 loadingIndicator.classList.add('hidden');
 
                 // 显示AI回答
-                aiResponse.innerHTML = data.response || "未找到相关结果";
+                const defaultResponse = `关于"${query}"，这是一个重要的研究领域。AI系统已经检索了相关学术论文，但由于演示限制，无法提供实时数据。在实际部署中，这里将显示基于最新学术论文的详细分析。`;
+
+                aiResponse.innerHTML = mockResponses[query] || defaultResponse;
                 aiResponseContainer.classList.remove('hidden');
 
-                // 如果有论文结果，也可以在这里显示
-                if (data.papers && data.papers.length > 0) {
-                    renderResults(data.papers, query);
-                }
-
-            } catch (error) {
-                console.error('搜索出错:', error);
-                clearTimeout(timeoutId);
-                
-                // 更详细的错误处理
-                let errorMessage = '搜索失败: ';
-                if (error.name === 'AbortError') {
-                    errorMessage += '请求超时，请检查网络连接或稍后重试';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMessage += '无法连接到服务器，请确保后端服务正在运行且URL配置正确';
-                } else {
-                    errorMessage += error.message;
-                }
-                
-                statusMessage.innerHTML = `<span class="text-red-500">${errorMessage}</span>`;
-                searchButton.disabled = false;
-                searchButton.innerHTML = '<i class="fas fa-search mr-2"></i>搜索论文';
-                loadingIndicator.classList.add('hidden');
-
-                // 模拟AI响应作为后备方案
-                simulateAIResponse(query);
-            }
-        }
-
-        /**
-         * 模拟AI响应（当后端不可用时使用）
-         */
-        function simulateAIResponse(query) {
-            // 这里是模拟数据，实际使用时应删除
-            const mockResponses = {
-                "机器学习": "机器学习是人工智能的一个子领域，专注于开发能够从数据中学习并做出预测的算法。近年来，深度学习技术极大地推动了该领域的发展，特别是在计算机视觉和自然语言处理方面。",
-                "神经网络": "神经网络是受人脑结构启发的计算模型，由相互连接的人工神经元组成。它们能够学习数据中的复杂模式，是深度学习的基础。Transformer架构是近年来最重要的进展之一。",
-                "自然语言处理": "自然语言处理(NLP)是人工智能的一个分支，专注于使计算机能够理解、解释和生成人类语言。BERT、GPT等大型语言模型已经彻底改变了这一领域。",
-                "计算机视觉": "计算机视觉使计算机能够从图像和视频中提取信息。卷积神经网络(CNN)是该领域的基础，而最近的Vision Transformer模型进一步提升了性能。"
-            };
-
-            const defaultResponse = `关于"${query}"，这是一个重要的研究领域。AI系统已经检索了相关学术论文，但由于演示限制，无法提供实时数据。在实际部署中，这里将显示基于最新学术论文的详细分析。`;
-
-            aiResponse.innerHTML = mockResponses[query] || defaultResponse;
-            aiResponseContainer.classList.remove('hidden');
+                // 显示论文结果
+                const papers = mockPapers[query] || [];
+                renderResults(papers, query);
+            }, 1500);
         }
 
         /**
@@ -383,36 +380,24 @@
                 resultCard.className = 'bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-500 card-hover fade-in';
                 resultCard.style.animationDelay = `${index * 0.1}s`;
 
-                // 高亮关键词
-                const highlightText = (text) => {
-                    const queryRegex = new RegExp(`(${query})`, 'gi');
-                    return text.replace(queryRegex, '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
-                };
-
                 resultCard.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
-                        <h3 class="text-xl font-bold text-gray-900 mb-2 sm:mb-0">${highlightText(paper.title)}</h3>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2 sm:mb-0">${paper.title}</h3>
                         <span class="text-sm font-medium text-indigo-600 bg-indigo-100 px-3 py-1 rounded-full">${paper.year}</span>
                     </div>
                     <p class="text-sm text-gray-500 mb-2">
                         作者: <span class="font-medium text-gray-700">${paper.authors.join(', ')}</span>
                     </p>
                     <p class="text-gray-600 text-sm italic mb-4 line-clamp-3">
-                        ${highlightText(paper.summary)}
+                        ${paper.summary}
                     </p>
                     <div class="flex space-x-3">
                         <a href="${paper.pdf_url}" target="_blank"
                             class="px-5 py-2 bg-green-500 text-white font-medium rounded-lg shadow-md hover:bg-green-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
                         >
                             <i class="fas fa-download mr-2"></i>
-                            下载 PDF
+                            查看详情
                         </a>
-                        <button
-                            class="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out transform hover:scale-[1.02] flex items-center"
-                        >
-                            <i class="fas fa-quote-right mr-2"></i>
-                            引用
-                        </button>
                     </div>
                 `;
                 resultsContainer.appendChild(resultCard);
